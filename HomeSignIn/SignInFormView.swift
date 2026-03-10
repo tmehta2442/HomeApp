@@ -65,12 +65,12 @@ struct SignInFormView: View {
                 FormField(
                     label: "Phone Number",
                     text: $phone,
-                    keyboard: .phonePad
+                    keyboard: .numberPad
                 )
                 FormField(
                     label: "Email Address",
                     text: $email,
-                    keyboard: .emailAddress
+                    keyboard: .default
                 )
             }
             .padding(.vertical, 8)
@@ -96,7 +96,7 @@ struct SignInFormView: View {
                     FormField(
                         label: "Agent's Phone Number",
                         text: $agentPhone,
-                        keyboard: .phonePad
+                        keyboard: .numberPad
                     )
                 }
             }
@@ -165,36 +165,72 @@ private struct FormField: View {
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            TextField(label, text: $text)
-                .keyboardType(keyboard)
-                .textContentType(contentType)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(capitalization)
-                .padding(12)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(.separator), lineWidth: 0.5)
-                )
+            NoAutofillTextField(
+                placeholder: label,
+                text: $text,
+                keyboardType: keyboard
+            )
+            .padding(12)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(.separator), lineWidth: 0.5)
+            )
         }
         .frame(maxWidth: .infinity)
     }
 
-    private var contentType: UITextContentType? {
-        switch label {
-        case "First Name": return .givenName
-        case "Last Name": return .familyName
-        case "Phone Number", "Agent's Phone Number": return .telephoneNumber
-        case "Email Address": return .emailAddress
-        default: return nil
+}
+
+// MARK: - NoAutofillTextField
+
+private struct NoAutofillTextField: UIViewRepresentable {
+    let placeholder: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    func makeUIView(context: Context) -> _NoAutofillUITextField {
+        let field = _NoAutofillUITextField()
+        field.placeholder = nil
+        field.keyboardType = keyboardType
+        field.autocorrectionType = .no
+        field.autocapitalizationType = (keyboardType == .numberPad) ? .none : .words
+        field.textContentType = nil
+        field.spellCheckingType = .no
+        field.smartQuotesType = .no
+        field.smartDashesType = .no
+        field.font = UIFont.preferredFont(forTextStyle: .body)
+        field.delegate = context.coordinator
+        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
+        if #available(iOS 17, *) {
+            field.inlinePredictionType = .no
         }
+        return field
     }
 
-    private var capitalization: TextInputAutocapitalization {
-        switch keyboard {
-        case .emailAddress, .phonePad: return .never
-        default: return .words
+    func updateUIView(_ uiView: _NoAutofillUITextField, context: Context) {
+        if uiView.text != text { uiView.text = text }
+    }
+
+    class Coordinator: NSObject, UITextFieldDelegate {
+        @Binding var text: String
+        init(text: Binding<String>) { _text = text }
+
+        @objc func textChanged(_ field: UITextField) {
+            text = field.text ?? ""
         }
+    }
+}
+
+// Subclass ensures inputAssistantItem stays empty even if iOS tries to repopulate it
+final class _NoAutofillUITextField: UITextField {
+    override var inputAssistantItem: UITextInputAssistantItem {
+        let item = super.inputAssistantItem
+        item.leadingBarButtonGroups = []
+        item.trailingBarButtonGroups = []
+        return item
     }
 }
