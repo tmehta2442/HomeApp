@@ -48,7 +48,7 @@ Visitor information is kept private behind a password.
 > 📸 **Screenshot pending** — *Password prompt sheet showing the lock icon, a secure number entry field, and Cancel / Hint / Unlock buttons.*
 
 3. Enter the password and tap **Unlock**
-4. Tap **Hint** if you need a reminder — the hint is: `Home Phone Number`
+4. Tap **Hint** if you need a reminder
 
 #### The Sign-Ins List
 
@@ -146,9 +146,4 @@ All data is stored **locally on the device only**. Nothing is sent to any server
 
 ## Password
 
-The default host password is set in `ContentView.swift`. You can change it by editing:
-
-```swift
-private let correctPassword = "1930"
-private let hint = "Home Phone Number"
-```
+The host password and hint are set in `ContentView.swift` and can be changed there.
