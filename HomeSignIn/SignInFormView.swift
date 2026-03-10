@@ -65,7 +65,8 @@ struct SignInFormView: View {
                 FormField(
                     label: "Phone Number",
                     text: $phone,
-                    keyboard: .numberPad
+                    keyboard: .numberPad,
+                    formatAsPhone: true
                 )
                 FormField(
                     label: "Email Address",
@@ -96,7 +97,8 @@ struct SignInFormView: View {
                     FormField(
                         label: "Agent's Phone Number",
                         text: $agentPhone,
-                        keyboard: .numberPad
+                        keyboard: .numberPad,
+                        formatAsPhone: true
                     )
                 }
             }
@@ -159,6 +161,7 @@ private struct FormField: View {
     let label: String
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
+    var formatAsPhone: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -168,7 +171,8 @@ private struct FormField: View {
             NoAutofillTextField(
                 placeholder: label,
                 text: $text,
-                keyboardType: keyboard
+                keyboardType: keyboard,
+                formatAsPhone: formatAsPhone
             )
             .padding(12)
             .background(Color(.secondarySystemGroupedBackground))
@@ -189,8 +193,9 @@ private struct NoAutofillTextField: UIViewRepresentable {
     let placeholder: String
     @Binding var text: String
     var keyboardType: UIKeyboardType
+    var formatAsPhone: Bool = false
 
-    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text, formatAsPhone: formatAsPhone) }
 
     func makeUIView(context: Context) -> _NoAutofillUITextField {
         let field = _NoAutofillUITextField()
@@ -203,8 +208,9 @@ private struct NoAutofillTextField: UIViewRepresentable {
         field.smartQuotesType = .no
         field.smartDashesType = .no
         field.font = UIFont.preferredFont(forTextStyle: .body)
+        field.setContentHuggingPriority(.required, for: .vertical)
+        field.setContentCompressionResistancePriority(.required, for: .vertical)
         field.delegate = context.coordinator
-        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
         if #available(iOS 17, *) {
             field.inlinePredictionType = .no
         }
@@ -217,10 +223,36 @@ private struct NoAutofillTextField: UIViewRepresentable {
 
     class Coordinator: NSObject, UITextFieldDelegate {
         @Binding var text: String
-        init(text: Binding<String>) { _text = text }
+        let formatAsPhone: Bool
 
-        @objc func textChanged(_ field: UITextField) {
-            text = field.text ?? ""
+        init(text: Binding<String>, formatAsPhone: Bool) {
+            _text = text
+            self.formatAsPhone = formatAsPhone
+        }
+
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            guard formatAsPhone else { return true }
+
+            let current = textField.text ?? ""
+            guard let swiftRange = Range(range, in: current) else { return false }
+            let updated = current.replacingCharacters(in: swiftRange, with: string)
+
+            let digits = updated.filter { $0.isNumber }
+            let limited = String(digits.prefix(10))
+            let formatted = Self.formatPhone(limited)
+
+            textField.text = formatted
+            text = formatted
+            return false
+        }
+
+        private static func formatPhone(_ digits: String) -> String {
+            var result = ""
+            for (i, char) in digits.enumerated() {
+                if i == 3 || i == 6 { result += "-" }
+                result.append(char)
+            }
+            return result
         }
     }
 }
