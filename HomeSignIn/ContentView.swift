@@ -3,20 +3,50 @@ import SwiftUI
 struct ContentView: View {
     @State private var showPasswordPrompt = false
     @State private var showSubmissions = false
+    @State private var textDarkness: Double = 1.0
+    @State private var labelSize: Double = 15.0
+    @State private var showSettings = false
 
     private let correctPassword = "1930"
     private let hint = "Home Phone Number"
 
     var body: some View {
-        SignInFormView()
+        SignInFormView(textDarkness: textDarkness, labelSize: labelSize)
             .overlay(alignment: .topTrailing) {
-                Button {
-                    showPasswordPrompt = true
-                } label: {
-                    Image(systemName: "list.bullet.clipboard")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                        .padding(20)
+                HStack(spacing: 0) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 20)
+                            .padding(.leading, 20)
+                            .padding(.trailing, 2)
+                    }
+                    .popover(isPresented: $showSettings) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Label Darkness")
+                                .font(.headline)
+                            Slider(value: $textDarkness, in: 0.2...1.0)
+                                .frame(width: 260)
+                            Divider()
+                            Text("Label Size")
+                                .font(.headline)
+                            Slider(value: $labelSize, in: 10.0...24.0)
+                                .frame(width: 260)
+                        }
+                        .padding(24)
+                        .presentationCompactAdaptation(.popover)
+                    }
+                    Button {
+                        showPasswordPrompt = true
+                    } label: {
+                        Image(systemName: "list.bullet.clipboard")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                            .padding(20)
+                    }
                 }
             }
             .sheet(isPresented: $showPasswordPrompt) {

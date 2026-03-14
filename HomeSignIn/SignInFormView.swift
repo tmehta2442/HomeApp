@@ -11,6 +11,8 @@ struct SignInFormView: View {
     @State private var agentName = ""
     @State private var agentBrokerage = ""
     @State private var agentPhone = ""
+    var textDarkness: Double
+    var labelSize: Double
     @State private var showThankYou = false
 
     var body: some View {
@@ -59,19 +61,23 @@ struct SignInFormView: View {
         GroupBox {
             VStack(spacing: 20) {
                 HStack(spacing: 16) {
-                    FormField(label: "First Name", text: $firstName)
-                    FormField(label: "Last Name", text: $lastName)
+                    FormField(label: "First Name", text: $firstName, textDarkness: textDarkness, labelSize: labelSize)
+                    FormField(label: "Last Name", text: $lastName, textDarkness: textDarkness, labelSize: labelSize)
                 }
                 FormField(
                     label: "Phone Number",
                     text: $phone,
                     keyboard: .numberPad,
-                    formatAsPhone: true
+                    formatAsPhone: true,
+                    textDarkness: textDarkness,
+                    labelSize: labelSize
                 )
                 FormField(
                     label: "Email Address",
                     text: $email,
-                    keyboard: .default
+                    keyboard: .default,
+                    textDarkness: textDarkness,
+                    labelSize: labelSize
                 )
             }
             .padding(.vertical, 8)
@@ -92,13 +98,15 @@ struct SignInFormView: View {
 
                 if hasAgent {
                     Divider()
-                    FormField(label: "Agent's Full Name", text: $agentName)
-                    FormField(label: "Brokerage / Company", text: $agentBrokerage)
+                    FormField(label: "Agent's Full Name", text: $agentName, textDarkness: textDarkness, labelSize: labelSize)
+                    FormField(label: "Brokerage / Company", text: $agentBrokerage, textDarkness: textDarkness, labelSize: labelSize)
                     FormField(
                         label: "Agent's Phone Number",
                         text: $agentPhone,
                         keyboard: .numberPad,
-                        formatAsPhone: true
+                        formatAsPhone: true,
+                        textDarkness: textDarkness,
+                        labelSize: labelSize
                     )
                 }
             }
@@ -162,12 +170,14 @@ private struct FormField: View {
     @Binding var text: String
     var keyboard: UIKeyboardType = .default
     var formatAsPhone: Bool = false
+    var textDarkness: Double = 1.0
+    var labelSize: Double = 15.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(size: labelSize))
+                .foregroundStyle(Color(white: 1.0 - textDarkness))
             NoAutofillTextField(
                 placeholder: label,
                 text: $text,
@@ -211,6 +221,7 @@ private struct NoAutofillTextField: UIViewRepresentable {
         field.setContentHuggingPriority(.required, for: .vertical)
         field.setContentCompressionResistancePriority(.required, for: .vertical)
         field.delegate = context.coordinator
+        field.addTarget(context.coordinator, action: #selector(Coordinator.editingChanged(_:)), for: .editingChanged)
         if #available(iOS 17, *) {
             field.inlinePredictionType = .no
         }
@@ -228,6 +239,12 @@ private struct NoAutofillTextField: UIViewRepresentable {
         init(text: Binding<String>, formatAsPhone: Bool) {
             _text = text
             self.formatAsPhone = formatAsPhone
+        }
+
+        @objc func editingChanged(_ textField: UITextField) {
+            if !formatAsPhone {
+                text = textField.text ?? ""
+            }
         }
 
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
